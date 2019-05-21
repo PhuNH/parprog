@@ -1,7 +1,8 @@
-NAME = x_gradient
+NAME = x_conv
 CC = g++
-CXXFLAGS = -std=c++11 -fopenmp -fstrict-overflow -Werror -Wshadow -Wstrict-overflow=5 -pedantic
-LDFLAGS = -lm -ljpeg -I $(CURDIR) 
+CXXFLAGS = -fopenmp -std=c++11 -I/usr/local/include/ -fopenmp -fstrict-overflow -pedantic -Werror -Wshadow -Wstrict-overflow=5 -pedantic
+LDFLAGS = -fopenmp -lm -lpng -I $(CURDIR) -L/usr/local/lib/
+
 
 #error if student directory is not set
 ifndef SDIR
