@@ -1,7 +1,7 @@
 NAME = x_conv
 CC = g++
-CXXFLAGS = -fopenmp -std=c++11 -I/usr/local/include/ -fopenmp -fstrict-overflow -pedantic -Werror -Wshadow -Wstrict-overflow=5 -pedantic
-LDFLAGS = -fopenmp -lm -lpng -I $(CURDIR) -L/usr/local/lib/
+CXXFLAGS = -fopenmp -std=c++11 `libpng-config --cflags` -fopenmp -fstrict-overflow -pedantic -Werror -Wshadow -Wstrict-overflow=5 -pedantic
+LDFLAGS = -fopenmp -lm -I $(CURDIR) `libpng-config --ldflags`
 
 
 #error if student directory is not set

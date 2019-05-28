@@ -5,6 +5,7 @@
 #include <png++/png.hpp>
 #include "x_conv.h"
 #include <chrono>
+#include <unistd.h>
 
 using namespace std;
 
@@ -33,11 +34,11 @@ int main(int argc, char **argv)
            error: printf(
                             "Usage:\n"
                             "-t \t number of threads used in computation(default: 1)\n"
-                            "-f \t output file name(default: tum.jpg)\n"
+                            "-f \t output file name(default: TUM.png)\n"
                                 "-n \t no output(default: 0)\n"
                             "\n"
                             "Example:\n"
-                            "%s -t 4 -f tum.jpg\n",
+                            "%s -t 4 -f TUM.png\n",
                             argv[0]);
                   exit(EXIT_FAILURE);
                   break;
