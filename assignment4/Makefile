@@ -1,62 +1,54 @@
-NAME = x_gradient
-CC = g++
-CXXFLAGS = -std=c++11 -fopenmp -fstrict-overflow -Werror -Wshadow -Wstrict-overflow=5 -pedantic
-LDFLAGS = -lm -ljpeg -I $(CURDIR) 
+NAME = familytree
+CC = gcc
+CFLAGS = -std=gnu99 -lpthread -fopenmp -fstrict-overflow -Werror -Wall -Wshadow -pedantic -I$(CURDIR)
+LDFLAGS = -lm -lpthread -fopenmp -lrt -ldl
 
 #error if student directory is not set
 ifndef SDIR
 SDIR = student
 endif
-CXXFLAGS += -I $(SDIR)
 
-# -Wall
 #Compiler flags
 #if mode variable is empty, setting release build mode
 ifeq ($(mode),debug)
-	CXXFLAGS += -O0 -g
+	CFLAGS += -O0 -g
 else
 	mode = release
-	CXXFLAGS += -O0
+	CFLAGS += -O2
 endif
 
 VPATH = $(SDIR)
-SRC = $(wildcard *.cpp) $(wildcard */*.cpp)
+SRC = $(wildcard *.c) $(wildcard */*.c)
 
-OBJ_SEQ =  $(SDIR)/main_seq.o
-OBJ_PAR =  $(SDIR)/main_par.o 
-OBJ_UNIT = $(SDIR)/unit_test.o
+OBJ_SEQ = $(SDIR)/main.o $(SDIR)/ds.o $(SDIR)/vis.o $(SDIR)/$(NAME).o $(SDIR)/$(NAME)_seq.o
+OBJ_PAR = $(SDIR)/main.o $(SDIR)/ds.o $(SDIR)/vis.o $(SDIR)/$(NAME).o $(SDIR)/$(NAME)_par.o
+OBJ_UNIT = $(SDIR)/unit_test.o $(SDIR)/ds.o $(SDIR)/vis.o $(SDIR)/$(NAME).o $(SDIR)/$(NAME)_par.o $(SDIR)/$(NAME)_ref.o
 
 # The dependency file names.
 DEPS := $(OBJ_SEQ:.o=.d)
 
-all: sequential parallel
+all: sequential parallel unit_test
 
-sequential:  $(SDIR)/$(NAME)_seq
+sequential: $(SDIR)/$(NAME)_seq
 
-parallel:  $(SDIR)/$(NAME)_par
+parallel: $(SDIR)/$(NAME)_par
 
 unit_test: $(SDIR)/unit_test
 
 $(SDIR)/$(NAME)_seq : $(OBJ_SEQ)
-	$(CXX) -o $@ $(OBJ_SEQ) $(CXXFLAGS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJ_SEQ) $(CFLAGS) $(LDFLAGS)
 
 $(SDIR)/$(NAME)_par : $(OBJ_PAR)
-	$(CXX) -o $@ $(OBJ_PAR) $(CXXFLAGS) -DPARALLEL $(LDFLAGS)
-	
+	$(CC) -o $@ $(OBJ_PAR) $(CFLAGS) $(LDFLAGS)
+
 $(SDIR)/unit_test: $(OBJ_UNIT)
-	$(CXX) -o $@ $(OBJ_UNIT) $(CXXFLAGS) -DPARALLEL $(LDFLAGS)
+	$(CC) -o $@ $(OBJ_UNIT) $(CFLAGS) $(LDFLAGS) 
 
-$(SDIR)/main_seq.o: main.cpp
-	$(CXX) -c -MMD -MP $< -o $@ $(CXXFLAGS) $(LDFLAGS)
-
-$(SDIR)/main_par.o: main.cpp
-	$(CXX) -c -MMD -MP -DPARALLEL $< -o $@ $(CXXFLAGS) $(LDFLAGS)
-
-$(SDIR)/unit_test.o: unit_test.cpp
-	$(CXX) -c -MMD -MP -DPARALLEL $< -o $@ $(CXXFLAGS) $(LDFLAGS)
+$(SDIR)/%.o: %.c
+	$(CC) -c -MMD -MP $< -o $@ $(CFLAGS)
 
 clean:
-	rm -f  $(SDIR)/$(NAME)_seq  $(SDIR)/$(NAME)_par $(SDIR)/unit_test  $(SDIR)/*.o  $(SDIR)/*.d
+	rm -f $(SDIR)/$(NAME)_seq $(SDIR)/$(NAME)_par $(SDIR)/unit_test $(SDIR)/*.o $(SDIR)/*.d $(SDIR)/runtime
 
 -include $(DEPS)
 
