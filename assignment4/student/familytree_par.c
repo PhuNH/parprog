@@ -9,7 +9,7 @@ int par_traverse(tree *node, int numThreads) {
     numThreads /= 2;
     int father_iq, mother_iq;
     
-#pragma omp task shared(father_iq) firstprivate(numThreads) final(numThreads < T)
+//#pragma omp task shared(father_iq) firstprivate(numThreads) final(numThreads < T)
     father_iq = par_traverse(node->father, numThreads);
 #pragma omp task shared(mother_iq) firstprivate(numThreads) final(numThreads < T)
     mother_iq = par_traverse(node->mother, numThreads);
