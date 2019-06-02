@@ -1,18 +1,15 @@
 #include "familytree.h"
 #include <omp.h>
 
-#define T 4
-
-int par_traverse(tree *node, int numThreads) {
+int par_traverse(tree *node) {
     if (node == NULL) return 0;
     
-    numThreads /= 2;
     int father_iq, mother_iq;
     
-#pragma omp task shared(father_iq) firstprivate(numThreads) final(numThreads < T)
-    father_iq = par_traverse(node->father, numThreads);
-//#pragma omp task shared(mother_iq) firstprivate(numThreads) final(numThreads < T)
-    mother_iq = par_traverse(node->mother, numThreads);
+#pragma omp task shared(father_iq) 
+    father_iq = par_traverse(node->father);
+//#pragma omp task shared(mother_iq) 
+    mother_iq = par_traverse(node->mother);
     
 #pragma omp taskwait
     node->IQ = compute_IQ(node->data, father_iq, mother_iq);
@@ -26,7 +23,7 @@ int traverse(tree *node, int numThreads){
 #pragma omp parallel 
     {
 #pragma omp single
-        par_traverse(node, numThreads);
+        par_traverse(node);
     }
     
     return node->IQ;
