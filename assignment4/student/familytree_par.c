@@ -1,7 +1,7 @@
 #include "familytree.h"
 #include <omp.h>
 
-#define T 2
+#define T 4
 
 int par_traverse(tree *node, int numThreads) {
     if (node == NULL) return 0;
