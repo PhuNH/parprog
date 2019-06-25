@@ -1,6 +1,6 @@
 NAME = dgemm
 CC = gcc
-CFLAGS = -std=gnu99 -mavx -pthread -fstrict-overflow -Werror -Wshadow -Wstrict-overflow=5  -pedantic
+CFLAGS = -std=gnu99 -mavx -pthread -fno-tree-vectorize  -fstrict-overflow -Werror -Wshadow -Wno-strict-overflow  -pedantic
 LDFLAGS = -lm -I $(CURDIR)
 
 #error if student directory is not set
@@ -41,7 +41,7 @@ $(SDIR)/$(NAME)_seq : $(OBJ_SEQ)
 
 $(SDIR)/$(NAME)_par : $(OBJ_PAR)
 	$(CC) -o $@ $(OBJ_PAR) $(CFLAGS) $(LDFLAGS)
-	
+
 $(SDIR)/unit_test: $(OBJ_UNIT)
 	$(CC) -o $@ $(OBJ_UNIT) $(CFLAGS) $(LDFLAGS)
 
@@ -50,7 +50,7 @@ $(SDIR)/%.o: %.c
 
 clean:
 	rm -f  $(SDIR)/$(NAME)_seq  $(SDIR)/$(NAME)_par $(SDIR)/unit_test  $(SDIR)/*.o  $(SDIR)/*.d
-	
+
 -include $(DEPS)
 
 .PHONY : all sequential parallel unit_test clean

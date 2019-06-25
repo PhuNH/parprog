@@ -14,14 +14,10 @@ int main(int argc, char **argv)
       
     if(argc > 1){
         n = atoi(argv[1]);
-        if (n%8!=0){
-            printf("N must be divisible by 8!\n");
-            return -1;
-        }
         printf("Array size defined as: %d\n", n);
     }
     else{
-        n = 256;
+        n = 315;
         printf("Array size was not defined and specified as: %d\n", n);
     }
 
