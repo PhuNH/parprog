@@ -1,55 +1,75 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stddef.h>
-#include <time.h>
-#include <mpi.h>
-#include "helper.h"
-#include "reverse.h"
+#include<string.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<mpi.h>
+#include<time.h>
+#include"life.h"
+#include"helper.h"
+#include"gui.h"
 
 int main(int argc, char** argv)
 {
-    int np, rank;
+  MPI_Init(&argc, &argv);
+  int rank, num_procs;
 
-    MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    MPI_Comm_size(MPI_COMM_WORLD, &np);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int width = 1000;
+  int height = 1000;
 
-    char *str = NULL; 
-    int str_len = strlen(argv[1]);
+  int num_iterations = 1000;
+  int (*grid)[width] = NULL;
 
-    if (rank == 0)
+  int show_gui = 0;
+  if (argc > 1) {
+      if (argc == 2 && strcmp(argv[1], "-g") == 0) {
+          show_gui = 1;
+      } else {
+          fprintf(stderr, "Usage:\n  %s [-g]\n", argv[0]);
+          exit(153);
+      }
+  }
+  
+  if (rank == 0)
     {
-        if (argc == 2 && str_len >= np)
+      if (show_gui)
         {
-            str = strdup(argv[1]);
+          gui_create_window(1, argv);
         }
-        else
+        
+      grid = malloc ( sizeof( int[height][width] )) ;
+
+      if (grid == NULL )
         {
-            fprintf(stderr, "Usage: %s \"This is a simple string that should be printed in reverse order\"\n", argv[0]);
-            exit(EXIT_FAILURE);
+          fprintf(stderr, "Failed to allocate memory. Aborting.\n");
+          //      MPI_Abort(MPI_COMM_WORLD, 1);
+          exit(1);
         }
+
+      initialize_grid(height, width, grid);
+    }
+  else
+    {
+      show_gui = 0;
     }
 
-    struct timespec start, stop;
+  global_show_gui = show_gui;
 
+  struct timespec start, stop;
 
-    if (rank == 0) {
-        printf("Before: %s\n", str);
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  simulate(height, width, grid, num_iterations);
+  clock_gettime(CLOCK_MONOTONIC, &stop);
+
+  if (rank == 0)
+    {
+      printf("Time: %lf seconds\n", time_diff(&start, &stop, NULL));
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    reverse(str, str_len);
-    clock_gettime(CLOCK_MONOTONIC, &stop);
+  free (grid);
+  MPI_Finalize();
 
-    if (rank == 0) {
-        printf("After : %s\n", str);
-        printf("Time: %lf seconds\n", time_diff(&start, &stop, NULL));
-    }
-
-    MPI_Finalize();
-
-    return 0;
+  return 0;
 }
+

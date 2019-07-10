@@ -1,4 +1,4 @@
-NAME = life
+NAME = reverse
 CC = mpicc
 CFLAGS = -std=gnu99 -fstrict-overflow -Werror -Wall -Wshadow -pedantic
 LDFLAGS = -lm -lrt -I $(CURDIR)
@@ -6,12 +6,6 @@ LDFLAGS = -lm -lrt -I $(CURDIR)
 #error if student directory is not set
 ifndef SDIR
 SDIR = student
-endif
-
-ifndef NOGUI
-LDFLAGS += -lGL -lX11 -lXrandr
-else
-CFLAGS += -DDISABLE_GUI
 endif
 
 #Compiler flags
@@ -26,9 +20,9 @@ endif
 VPATH = $(SDIR)
 SRC = $(wildcard *.c) $(wildcard */*.c)
 
-OBJ_SEQ = $(SDIR)/main.o $(SDIR)/$(NAME)_seq.o $(SDIR)/helper.o $(SDIR)/gui.o
-OBJ_PAR = $(SDIR)/main.o $(SDIR)/$(NAME)_par.o $(SDIR)/helper.o $(SDIR)/gui.o
-OBJ_UNIT = $(SDIR)/unit_test.o $(SDIR)/$(NAME)_par.o $(SDIR)/helper.o $(SDIR)/$(NAME)_ref.o $(SDIR)/gui.o
+OBJ_SEQ = $(SDIR)/main.o $(SDIR)/$(NAME)_seq.o $(SDIR)/helper.o
+OBJ_PAR = $(SDIR)/main.o $(SDIR)/$(NAME)_par.o $(SDIR)/helper.o
+OBJ_UNIT = $(SDIR)/unit_test.o $(SDIR)/$(NAME)_par.o $(SDIR)/helper.o
 
 # The dependency file names.
 DEPS := $(OBJ_SEQ:.o=.d)
@@ -40,6 +34,9 @@ sequential: $(SDIR)/$(NAME)_seq
 parallel: $(SDIR)/$(NAME)_par
 
 unit_test: $(SDIR)/unit_test
+
+$(SDIR)/performance_test: $(OBJ_PERF)
+	$(CC) -o $@ $(OBJ_PERF) $(CFLAGS) $(LDFLAGS)
 
 $(SDIR)/$(NAME)_seq : $(OBJ_SEQ)
 	$(CC) -o $@ $(OBJ_SEQ) $(CFLAGS) $(LDFLAGS)
@@ -61,8 +58,10 @@ $(SDIR)/%.o: %.c
 
 clean:
 	rm -f $(SDIR)/$(NAME)_par $(SDIR)/$(NAME)_seq $(SDIR)/unit_test $(SDIR)/*.o $(SDIR)/*.d
-
+	
 -include $(DEPS)
 
-.PHONY : all sequential parallel unit_test clean 
+.PHONY : all sequential parallel unit_test clean performance_test
+
+
 

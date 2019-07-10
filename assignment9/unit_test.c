@@ -1,79 +1,81 @@
-#include <math.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdio.h>
-#include <string.h>
-#include <mpi.h>
-#include "helper.h"
-#include "reverse.h"
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<mpi.h>
+#include"life.h"
+#include"life_ref.h"
+#include"helper.h"
 
+int main(int argc, char** argv)
+{
+  MPI_Init(&argc, &argv);
+  int rank, num_procs;
 
-int isEqual(char* a_seq, char* a_par, int length) {
-	for (int i = 0; i < length; i++) {
-		if ( a_seq[i] != a_par[i])
-			return 0;
-	}
-	return 1;
-}
+  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+  // consider making this adjustable
+  int width = 300;
+  int height = 300;
 
-int main(int argc, char** argv) {
+  int num_iterations = 1000;
 
-	int np, rank;
+  int (*grid_seq)[width] = NULL;
+  int (*grid_par)[width] = NULL;
 
-	MPI_Init(&argc, &argv);
+  if (rank == 0)
+    {
+      grid_seq = malloc ( sizeof( int[height][width] )) ;
+      grid_par = malloc ( sizeof( int[height][width] )) ;
 
-	MPI_Comm_size(MPI_COMM_WORLD, &np);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (grid_seq == NULL || grid_par == NULL)
+        {
+          fprintf(stderr, "Failed to allocate memory. Aborting.\n");
+          MPI_Abort(MPI_COMM_WORLD, 1);
+        }
 
-	char *str_ref = NULL, *str = NULL;
-	int str_len = strlen(argv[1]);
+      initialize_grid(height, width, grid_seq);
 
-	if (rank == 0)
-	{
-		if (argc == 2 && str_len >= np)
-		{
-			str = strdup(argv[1]);
-		}
-		else
-		{
-			fprintf(stderr, "Usage: %s \"This is a simple string that should be printed in reverse order\"\n", argv[0]);
-			exit(EXIT_FAILURE);
-		}
-	}
+      // initialize parallel grid
+      memcpy( &(grid_par[0][0]), &(grid_seq[0][0]), sizeof(int) * height * width);
 
-	int exit_status;
+      // get sequential results
+      simulate_ref(height, width, grid_seq, num_iterations);
+    }
 
-	if (rank == 0) printf("Rank: %d Before: %s\n", rank, str);
+  simulate(height, width, grid_par, num_iterations);
 
-	reverse(str, str_len);
+  int exit_status;
 
-	if (rank == 0) printf("Rank: %d After: %s\n", rank, str);
+  if (rank == 0)
+    {
+      int row;
+      int col;
+      int diff = compare_grids(height, width, grid_seq, grid_par, &row, &col);
 
-	str_ref = strdup(argv[1]);
+      if ( diff == 0 )
+        {
+          printf("Unit test passed\n");
+          exit_status = EXIT_SUCCESS;
+        }
+      // differences in parallel and sequential version
+      else
+        {
+          printf("Unit test failed. First difference at row %d, col %d\n", row, col );
+          printf("Hint: You can use the save_to_file function in helper.c to inspect the state of the grid.\n");
+          exit_status = EXIT_FAILURE;
+        }
+    }
+  // for processes other than root, return success
+  else
+    {
+      MPI_Finalize();
+      return EXIT_SUCCESS;
+    }
 
-	reverse_str(str_ref, str_len);
+  free (grid_par);
+  free (grid_seq);
+  MPI_Finalize();
 
-	if (rank == 0) {
-		if (isEqual(str_ref, str, str_len))
-		{
-			exit_status = EXIT_SUCCESS;
-			printf("Unit test completed successfully.\n");
-		}
-		else {
-			fprintf(stderr, "ERROR: Sequential implementation and parallel implementation produce different results.\n");
-			exit_status = EXIT_FAILURE;
-		}
-	}
-	else
-	{
-		MPI_Finalize();
-		return EXIT_SUCCESS;
-
-	}
-
-	MPI_Finalize();
-	printf("%d\n", exit_status);
-	return exit_status;
+  return exit_status;
 }
