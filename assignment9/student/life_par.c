@@ -15,6 +15,39 @@
 #define UR    6
 #define DL    7
 
+void evolve_(int height, int width, int grid[height][width])
+{
+    int temp[height][width], i, j;
+
+    for (i = 1; i < height-1; i++) {
+        if (i >= 3)
+            memcpy(&grid[i-2][1], &temp[i-2][1], (width-2)*sizeof(int));
+        for (j = 1; j < width-1; j++) {
+            int sum = grid[i-1][j-1] + grid[i-1][j] + grid[i-1][j+1]
+                    + grid[i][j-1] + grid[i][j+1]
+                    + grid[i+1][j-1] + grid[i+1][j] + grid[i+1][j+1];
+            if (grid[i][j] == 0) {
+                // reproduction
+                if (sum == 3)
+                    temp[i][j] = 1;
+                else
+                    temp[i][j] = 0;
+            } else { // alive
+                // stays alive
+                if (sum == 2 || sum == 3)
+                    temp[i][j] = 1;
+                // dies due to under or overpopulation
+                else
+                    temp[i][j] = 0;
+            }
+        }
+        if (i == height-2) {
+            memcpy(&grid[i-1][1], &temp[i-1][1], (width-2)*sizeof(int));
+            memcpy(&grid[i][1], &temp[i][1], (width-2)*sizeof(int));
+        }
+    }
+}
+
 void simulate(int height, int width, int grid[height][width], int num_iterations)
 {
   /*
@@ -68,18 +101,18 @@ void simulate(int height, int width, int grid[height][width], int num_iterations
 //             rank, block_height, block_width, padded_height, padded_width, local_height, local_width);
     
     // copy the original grid to a new one, pad it if necessary
-    int padded_grid[padded_height][padded_width];
-    if (rank == 0) {
-        memset(padded_grid, 0, padded_height * padded_width * sizeof(int));
+//     int padded_grid[padded_height][padded_width];
+//     if (rank == 0) {
+//         memset(padded_grid, 0, padded_height * padded_width * sizeof(int));
 //         print_grid("padded set:", padded_height, padded_width, padded_grid);
-        for (i = 0; i < height-2; i++)
-            memcpy(&padded_grid[i][0], &grid[i+1][1], (width-2)*sizeof(int));
+//         for (i = 0; i < height-2; i++)
+//             memcpy(&padded_grid[i][0], &grid[i+1][1], (width-2)*sizeof(int));
 //         print_grid("padded pad:", padded_height, padded_width, padded_grid);
-    }
+//     }
     
     // create a new type of submatrix
     MPI_Datatype blocktype, blocktype2;
-    MPI_Type_vector(block_height, block_width, padded_width, MPI_INT, &blocktype2);
+    MPI_Type_vector(block_height, block_width, width, MPI_INT, &blocktype2);
     MPI_Type_create_resized(blocktype2, 0, sizeof(int), &blocktype);
     MPI_Type_commit(&blocktype);
     
@@ -88,14 +121,15 @@ void simulate(int height, int width, int grid[height][width], int num_iterations
     for (i = 0; i < dims[0]; i++) {
         for (j = 0; j < dims[1]; j++) {
             count_at_root[i*dims[1]+j] = 1;
-            displs[i*dims[1]+j] = i*block_height*padded_width + j*block_width;
+            displs[i*dims[1]+j] = i*block_height*width + j*block_width;
         }
     }
     
 //     if (rank == 0)
 //         print_grid("grid:", height, width, grid);
     
-    MPI_Scatterv(padded_grid, count_at_root, displs, blocktype, block_array, block_height*block_width, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(&grid[1][1], count_at_root, displs, blocktype, block_array, block_height*block_width, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Type_free(&blocktype);
 //     char buffer[50];
 //     sprintf(buffer, "rank %d:", rank);
 //     print_grid(buffer, block_height, block_width, block_array);
@@ -163,16 +197,22 @@ void simulate(int height, int width, int grid[height][width], int num_iterations
 //         sprintf(buffer, "rank %d local array iteration %d:", rank, it);
 //         print_grid(buffer, local_height+2, local_width+2, local_array);
         
-        evolve(local_height+2, local_width+2, local_array);
+        evolve_(local_height+2, local_width+2, local_array);
         MPI_Barrier(MPI_COMM_WORLD);
     }
     MPI_Type_free(&column_vector);
     
+    MPI_Datatype blocktype_, blocktype_2;
+    MPI_Type_vector(block_height, block_width, padded_width, MPI_INT, &blocktype_2);
+    MPI_Type_create_resized(blocktype_2, 0, sizeof(int), &blocktype_);
+    MPI_Type_commit(&blocktype_);
+    
+    int padded_grid[padded_height][padded_width];
     // block array
     for (i = 1; i < local_height+1; i++)
         memcpy(&block_array[i-1][0], &local_array[i][1], local_width*sizeof(int));
-    MPI_Gatherv(block_array, block_height*block_width, MPI_INT, padded_grid, count_at_root, displs, blocktype, 0, MPI_COMM_WORLD);
-    MPI_Type_free(&blocktype);
+    MPI_Gatherv(block_array, block_height*block_width, MPI_INT, padded_grid, count_at_root, displs, blocktype_, 0, MPI_COMM_WORLD);
+    MPI_Type_free(&blocktype_);
     
     // copy data to the original grid
     if (rank == 0) {
