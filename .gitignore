@@ -1,6 +1,5 @@
 *.kdev4
-assignment11_18
-assignment12_18
+*_18/
 
 # Prerequisites
 *.d
